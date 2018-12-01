@@ -1,6 +1,14 @@
-# Des_One_round
-Implementation of one round of DES encryption
+# Des_Implementation
+Implementation of DES encryption
 
 Compile:
 
-`g++ -std=c++11 one_round_des.cpp`
+`g++ -std=c++11 DES.cpp -o DES`
+
+If gitbash:
+
+`g++ -std=c++11 DES.cpp -o DES -static`
+
+Run:
+
+`./DES`
