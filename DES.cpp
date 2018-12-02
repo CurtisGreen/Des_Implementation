@@ -3,8 +3,16 @@
 #include <bitset>
 #include <sstream>
 #include <vector>
+#include <unistd.h>
 #include "des_data.h"
 
+bool verbose = false;
+
+void verbose_print(std::string text){
+	if (verbose){
+		std::cout << text << std::endl;
+	}
+}
 
 // Xors each char in the string
 std::string xor_strings(std::string s1, std::string s2){
@@ -21,6 +29,8 @@ std::string xor_strings(std::string s1, std::string s2){
 		return s1;
 	}
 }
+
+
 
 // Compute p-box expansion
 std::string expansion_p_box(std::string input){
@@ -68,6 +78,7 @@ std::string bin_to_string(std::string input){
 	return output;
 }
 
+// Initial permutation before mangler
 std::string ip_permutation(std::string plaintext){
 	if (plaintext.size() == 64){
 		std::string output;
@@ -84,6 +95,7 @@ std::string ip_permutation(std::string plaintext){
 
 }
 
+// Inverse of ip_permutation
 std::string reverse_ip(std::string almost_encrypted_text){
 	if (almost_encrypted_text.size() == 64){
 		std::string output;
@@ -100,6 +112,7 @@ std::string reverse_ip(std::string almost_encrypted_text){
 
 }
 
+// Position swap according to PC1 table
 std::string pc1_permutation(std::string key){
 	if (key.size() == 64){
 		std::string output;
@@ -116,6 +129,7 @@ std::string pc1_permutation(std::string key){
 	
 }
 
+// Position swap according to PC2 table
 std::string pc2_permutation(std::string key){
 	if (key.size() == 56){
 		std::string output;
@@ -132,6 +146,7 @@ std::string pc2_permutation(std::string key){
 	
 }
 
+// S-boxes shrink input from 48 to 32
 std::string shrink_s_box(std::string input){
 	if (input.size() == 48){
 		std::string output;
@@ -140,20 +155,15 @@ std::string shrink_s_box(std::string input){
 			std::string temp;
 			temp += input[i*6];
 			temp += input[i*6+5];
-			std::cout << "row binary " << temp << std::endl;
 			int row = std::stoi(temp, nullptr, 2);
 
 			// Column is middle 4 bits
 			temp = input.substr(i*6+1, 4);
-			std::cout << "column binary " << temp << std::endl;
 			int column = std::stoi(temp, nullptr, 2);
 
 			// Get value conversion from sbox table
 			int s_box_out = (int)(SBOX[i][row*16 + column]);
-			std::cout << "row " << row << " column " << column << std::endl;
-			std::cout << "sboxout " << s_box_out << std::endl;
-			std::cout << "binary " << std::bitset<4>(s_box_out).to_string() << std::endl;
-			std::cout << "\n";
+
 			// Add to output
 			output += std::bitset<4>(s_box_out).to_string();
 		}
@@ -165,6 +175,7 @@ std::string shrink_s_box(std::string input){
 	}
 }
 
+// Position swap according to PBOX table
 std::string straight_p_box(std::string input){
 	if (input.size() == 32){
 		std::string output;
@@ -181,11 +192,13 @@ std::string straight_p_box(std::string input){
 	}
 }
 
+// Shift key 1 or 2 left based on round #
 std::vector<std::string> shift_key(std::string input){
 	if (input.size() == 28){
 		std::vector<std::string> output;
 		output.push_back(input);
 		std::string prev_round;
+
 		// Shift each round based on the last
 		for (int round = 0; round < 16; round++){
 			std::string curr_round;
@@ -229,19 +242,12 @@ std::vector<std::string> shift_key(std::string input){
 // 64-bit key -> 16 48-bit subkeys
 std::vector<std::string> create_subkeys(std::string key){
 	std::string key_permutation = pc1_permutation(key);
-	//std::cout << key_permutation << std::endl;
+
 	std::string left_perm_key = key_permutation.substr(0, 28);
 	std::string right_perm_key = key_permutation.substr(28, 55);
-	//std::cout << left_perm_key << std::endl;
-	//std::cout << right_perm_key << std::endl;
+
 	std::vector<std::string> shifted_left = shift_key(left_perm_key);
 	std::vector<std::string> shifted_right = shift_key(right_perm_key);
-
-	for (int i = 0; i < shifted_right.size(); i++){
-		//std::cout << "C" << i << " = " << shifted_left[i] << std::endl;
-		//std::cout << "D" << i << " = " << shifted_right[i] << std::endl;
-		//std::cout << std::endl;
-	}
 
 	// Combine left/right and perm through PC2
 	std::vector<std::string> pc2_perms;
@@ -249,87 +255,125 @@ std::vector<std::string> create_subkeys(std::string key){
 		std::string pc2_perm = pc2_permutation(shifted_left[i] + shifted_right[i]);
 		pc2_perms.push_back(pc2_perm);
 	}
-
-	for (int i = 0; i < pc2_perms.size(); i++){
-		//std::cout << "K" << i+1 << " = " << pc2_perms[i] << std::endl;
-	}
 	
 	return pc2_perms;
 }
 
 std::string mangler(std::string input, std::string key){
 
-	// Convert to binary for p-box
-	//std::string bin_string = string_to_bin(input);
+	// Expand to 48 bits
 	std::string expanded = expansion_p_box(input);
-	//std::cout << "Expansion: " << expanded << std::endl;
 
-	// Convert back to string for xor with key
-	//std::string text_string = bin_to_string(expanded);
+	// Xor with key
 	std::string xor_out = xor_strings(expanded, key);
-	//std::cout << "Xor: " << xor_out << std::endl;
 
-	// Convert back to binary for s-box
-	//bin_string = string_to_bin(xor_out);
+	// Shrink to 32 bits
 	std::string s_box_out = shrink_s_box(xor_out);
-	//std::cout << "Shrink: " << s_box_out << std::endl;
 
+	// Permutation, no size change
 	std::string out = straight_p_box(s_box_out);
-	//std::cout << "Straight: " << out << std::endl;
 
-	// convert to string before return
-	//return bin_to_string(out);
 	return out;
 }
 
-int main(){
+int main(int argc, char** argv){
 
-	// Input 
-	// 64 bit (8 byte) plaintext and 48 bit (6 byte) key
-	std::string plaintext = "0000000100100011010001010110011110001001101010111100110111101111";
-	std::string key = "0001001100110100010101110111100110011011101111001101111111110001";
-
-	// Create 16 subkeys of length 48bits
-	std::vector<std::string> subkeys = create_subkeys(key);
-
-	// Encode each 64 bit block
-	std::string ip_permed = ip_permutation(plaintext);
-	//std::cout << ip_permed << std::endl;
-
-	// Split halves
-	std::string initial_left = ip_permed.substr(0, 32);
-	std::string initial_right = ip_permed.substr(32, 32);
-	std::cout << "L0 = " << initial_left << std::endl;
-	std::cout << "R0 = " << initial_right << std::endl;
-
-	// Run 16 rounds of operations
-	std::string left_half;
-	std::string right_half;
-	for (int round = 0; round < 16; round++){
-		std::cout << "Round " << round << ":" << std::endl;
-		if (round == 0){
-			std::string mangled = mangler(initial_right, subkeys[0]);
-			//std::cout << "Mangled: " << mangled << std::endl;
-			std::string xor_out = xor_strings(initial_left, mangled);
-			//std::cout << "Xor'd: " << xor_out << std::endl;
-			left_half = initial_right;
-			right_half = xor_out;
-		}
-		else {
-			std::string mangled = mangler(right_half, subkeys[round]);
-			//std::cout << "Mangled: " << mangled << std::endl;
-			std::string xor_out = xor_strings(left_half, mangled);
-			//std::cout << "Xor'd: " << xor_out << std::endl;
-			left_half = right_half;
-			right_half = xor_out;
-		}
-		std::cout << "K" << round+1 << " = " << subkeys[round] << std::endl;
-		std::cout << "L" << round+1 << " = " << left_half << std::endl;
-		std::cout << "R" << round+1 << " = " << right_half << std::endl;
-		std::cout << "\n";
+	bool encrypt, decrypt, ascii, binary = false;
+	std::string plaintext, key;
+	int opt = 0;
+	while((opt = getopt(argc, argv, "edp:k:ab")) != -1){
+		switch(opt) {
+	        case 'e':
+	            encrypt = true;break;
+	        case 'd':
+	            decrypt = true;break;
+	        case 'p':
+	            plaintext = optarg;break;
+	        case 'k':
+	            key = optarg;break;
+	        case 'a':
+	            ascii = true;break;
+	        case 'b':
+	            binary = true;break;
+	        default:
+	            std::cerr << "Invalid Command Line Argument\n";
+        }
 	}
 
-	// Reverse the initial swap & perm
-	std::string final_output = reverse_ip(right_half + left_half);
-	std::cout << "\nDES output " << final_output << std::endl;
+	// Error conditions
+	if (encrypt && decrypt){
+		std::cout << "Please run with either encrypt(-e) or decypt(-d), not both" << std::endl;
+		return 0;
+	}
+	else if (!encrypt && !decrypt){
+		std::cout << "Please run with either encrypt(-e) or decypt(-d)" << std::endl;
+		return 0;
+	}
+	else if (ascii && (plaintext.size() != 8 || key.size() != 8)){
+		std::cout << "Please enter an ascii key and plaintext of length 8" << std::endl;
+		return 0;
+	}
+	else if (!ascii && (plaintext.size() != 64 || key.size() != 64)){
+		std::cout << "Please enter a binary key and plaintext of length 64" << std::endl;
+		return 0;
+	}
+
+	// Success conditions
+	else if (ascii){
+		plaintext = string_to_bin(plaintext);
+		key = string_to_bin(key);
+	}
+
+	if (encrypt){
+		// Input: 64 bit (8 byte) plaintext and key (8 bits of key are redundant)
+		//std::string plaintext = "0000000100100011010001010110011110001001101010111100110111101111";
+		//std::string key = "0001001100110100010101110111100110011011101111001101111111110001";
+
+		// Create 16 subkeys of length 48bits
+		std::vector<std::string> subkeys = create_subkeys(key);
+
+		// Encode each 64 bit block
+		std::string ip_permed = ip_permutation(plaintext);
+		verbose_print("Initial Permutation: " + ip_permed);
+
+		// Split halves
+		std::string initial_left = ip_permed.substr(0, 32);
+		std::string initial_right = ip_permed.substr(32, 32);
+		verbose_print("L0 = " + initial_left);
+		verbose_print("R0 = " + initial_right);
+
+		// Run 16 rounds of operations
+		std::string left_half;
+		std::string right_half;
+		for (int round = 0; round < 16; round++){
+			verbose_print("Round " + std::to_string(round) + ":");
+
+			if (round == 0){
+				std::string mangled = mangler(initial_right, subkeys[0]);
+				std::string xor_out = xor_strings(initial_left, mangled);
+				left_half = initial_right;
+				right_half = xor_out;
+			}
+			else {
+				std::string mangled = mangler(right_half, subkeys[round]);
+				std::string xor_out = xor_strings(left_half, mangled);
+				left_half = right_half;
+				right_half = xor_out;
+			}
+
+			verbose_print("K" + std::to_string(round+1) + " = " + subkeys[round]);
+			verbose_print("L" + std::to_string(round+1) + " = " + left_half);
+			verbose_print("R" + std::to_string(round+1) + " = " + right_half + '\n');
+		}
+
+		// Reverse the initial swap & perm
+		std::string final_output = reverse_ip(right_half + left_half);
+		std::cout << "\nDES output " << final_output << std::endl;
+		if (ascii){
+			std::cout << "ASCII output " << bin_to_string(final_output) << std::endl;
+		}
+	}
+	else if(decrypt){
+		std::cout << "Working on it" << std::endl;
+	}
 }
