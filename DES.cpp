@@ -274,7 +274,7 @@ std::string Des::mangler(std::string input, std::string key){
 	return out;
 }
 
-void Des::run_des(bool encrypt, bool decrypt, std::string plaintext, std::string key,
+void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 	bool ascii, bool binary, bool verb){
 
 	verbose = verb;
@@ -288,18 +288,18 @@ void Des::run_des(bool encrypt, bool decrypt, std::string plaintext, std::string
 		std::cout << "Please run with either encrypt(-e) or decypt(-d)" << std::endl;
 		return;
 	}
-	else if (ascii && (plaintext.size() != 8 || key.size() != 8)){
-		std::cout << "Please enter an ascii key and plaintext of length 8" << std::endl;
+	else if (ascii && (text.size() != 8 || key.size() != 8)){
+		std::cout << "Please enter an ascii key and text of length 8" << std::endl;
 		return;
 	}
-	else if (!ascii && (plaintext.size() != 64 || key.size() != 64)){
-		std::cout << "Please enter a binary key and plaintext of length 64" << std::endl;
+	else if (!ascii && (text.size() != 64 || key.size() != 64)){
+		std::cout << "Please enter a binary key and text of length 64" << std::endl;
 		return;
 	}
 
 	// Success conditions
 	else if (ascii){
-		plaintext = string_to_bin(plaintext);
+		text = string_to_bin(text);
 		key = string_to_bin(key);
 	}
 
@@ -312,7 +312,7 @@ void Des::run_des(bool encrypt, bool decrypt, std::string plaintext, std::string
 		std::vector<std::string> subkeys = create_subkeys(key);
 
 		// Encode each 64 bit block
-		std::string ip_permed = ip_permutation(plaintext);
+		std::string ip_permed = ip_permutation(text);
 		verbose_print("Initial Permutation: " + ip_permed);
 
 		// Split halves
@@ -347,12 +347,53 @@ void Des::run_des(bool encrypt, bool decrypt, std::string plaintext, std::string
 
 		// Reverse the initial swap & perm
 		std::string final_output = reverse_ip(right_half + left_half);
-		std::cout << "\nDES output " << final_output << std::endl;
+		std::cout << "\nDES encrypted output " << final_output << std::endl;
 		if (ascii){
-			std::cout << "ASCII output " << bin_to_string(final_output) << std::endl;
+			std::cout << "ASCII encrypted output " << bin_to_string(final_output) << std::endl;
 		}
 	}
 	else if(decrypt){
 		std::cout << "Working on it" << std::endl;
+
+		// Create 16 subkeys of length 48bits
+		std::vector<std::string> subkeys = create_subkeys(key);
+
+		// Decode each 64 bit block
+		std::string ip_permed = ip_permutation(text);
+		verbose_print("Initial Permutation: " + ip_permed);
+
+		// Swap halves
+		std::string initial_left = ip_permed.substr(32, 32);
+		std::string initial_right = ip_permed.substr(0, 32);
+
+		// Reverse 16 rounds
+		std::string left_half, right_half;
+		for (int round = 15; round >= 0; round--){
+			verbose_print("Round " + std::to_string(round) + ":");
+
+			if (round == 15){
+				right_half = initial_left;
+				std::string mangled = mangler(right_half, subkeys[round]);
+				left_half = xor_strings(mangled, initial_right);
+			}
+			else {
+				std::string prev_right = right_half;
+				right_half = left_half;
+				std::string mangled = mangler(right_half, subkeys[round]);
+				left_half = xor_strings(mangled, prev_right);
+
+			}
+
+			verbose_print("K" + std::to_string(round+1) + " = " + subkeys[round]);
+			verbose_print("L" + std::to_string(round+1) + " = " + left_half);
+			verbose_print("R" + std::to_string(round+1) + " = " + right_half + '\n');
+		}
+
+		// Reverse the initial perm
+		std::string final_output = reverse_ip(left_half + right_half);
+		std::cout << "\nDES decrypted output " << final_output << std::endl;
+		if (ascii){
+			std::cout << "ASCII decrypted output " << bin_to_string(final_output) << std::endl;
+		}
 	}
 }

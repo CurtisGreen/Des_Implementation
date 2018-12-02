@@ -9,13 +9,13 @@ int main(int argc, char** argv){
 	bool encrypt, decrypt, ascii, binary, verbose = false;
 	std::string plaintext, key;
 	int opt = 0;
-	while((opt = getopt(argc, argv, "edp:k:abv")) != -1){
+	while((opt = getopt(argc, argv, "edm:k:abv")) != -1){
 		switch(opt) {
 	        case 'e':
 	            encrypt = true;break;
 	        case 'd':
 	            decrypt = true;break;
-	        case 'p':
+	        case 'm':
 	            plaintext = optarg;break;
 	        case 'k':
 	            key = optarg;break;
