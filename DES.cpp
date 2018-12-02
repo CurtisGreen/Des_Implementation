@@ -1,21 +1,17 @@
-#include <iostream>
-#include <string>
-#include <bitset>
-#include <sstream>
-#include <vector>
-#include <unistd.h>
-#include "des_data.h"
+#include "des.hpp"
 
-bool verbose = false;
+//////////////////////////////////////////////
+/// 			Utility	
+//////////////////////////////////////////////
 
-void verbose_print(std::string text){
+void Des::verbose_print(std::string text){
 	if (verbose){
 		std::cout << text << std::endl;
 	}
 }
 
 // Xors each char in the string
-std::string xor_strings(std::string s1, std::string s2){
+std::string Des::xor_strings(std::string s1, std::string s2){
 	if (s1.size() == s2.size()){
 		std::string out;
 		for (int i = 0; i < s1.size(); i++){
@@ -30,10 +26,40 @@ std::string xor_strings(std::string s1, std::string s2){
 	}
 }
 
+// Convert string to binary string
+std::string Des::string_to_bin(std::string input){
+	std::string output = "";
 
+	// Convert each char to binary and put each binary part into output
+	for (int i = 0; i < input.size(); i++){
+		output += (std::bitset<8>(input.c_str()[i])).to_string<char, std::string::traits_type,std::string::allocator_type>();
+	}
+
+	return output;
+}
+
+// Convert a string of binary numbers to their ascii equivalent
+std::string Des::bin_to_string(std::string input){
+	std::string output;
+	std::bitset<8> bits;
+
+	// Convert in 8 bit blocks
+	for (int i = 0; i < input.size()/8; i++){
+		std::string substring = input.substr(i*8, 8);
+		bits = std::bitset<8>(substring.c_str());
+		char c = char(bits.to_ulong());
+		output += c;
+	}
+
+	return output;
+}
+
+//////////////////////////////////////////////
+/// 			DES functions
+//////////////////////////////////////////////
 
 // Compute p-box expansion
-std::string expansion_p_box(std::string input){
+std::string Des::expansion_p_box(std::string input){
 	if (input.size() == 32){
 		std::string output;
 		output.resize(48);
@@ -50,36 +76,8 @@ std::string expansion_p_box(std::string input){
 	}
 }
 
-// Convert string to binary string
-std::string string_to_bin(std::string input){
-	std::string output = "";
-
-	// Convert each char to binary and put each binary part into output
-	for (int i = 0; i < input.size(); i++){
-		output += (std::bitset<8>(input.c_str()[i])).to_string<char, std::string::traits_type,std::string::allocator_type>();
-	}
-
-	return output;
-}
-
-// Convert a string of binary numbers to their ascii equivalent
-std::string bin_to_string(std::string input){
-	std::string output;
-	std::bitset<8> bits;
-
-	// Convert in 8 bit blocks
-	for (int i = 0; i < input.size()/8; i++){
-		std::string substring = input.substr(i*8, 8);
-		bits = std::bitset<8>(substring.c_str());
-		char c = char(bits.to_ulong());
-		output += c;
-	}
-
-	return output;
-}
-
 // Initial permutation before mangler
-std::string ip_permutation(std::string plaintext){
+std::string Des::ip_permutation(std::string plaintext){
 	if (plaintext.size() == 64){
 		std::string output;
 		output.resize(64);
@@ -96,7 +94,7 @@ std::string ip_permutation(std::string plaintext){
 }
 
 // Inverse of ip_permutation
-std::string reverse_ip(std::string almost_encrypted_text){
+std::string Des::reverse_ip(std::string almost_encrypted_text){
 	if (almost_encrypted_text.size() == 64){
 		std::string output;
 		output.resize(64);
@@ -113,7 +111,7 @@ std::string reverse_ip(std::string almost_encrypted_text){
 }
 
 // Position swap according to PC1 table
-std::string pc1_permutation(std::string key){
+std::string Des::pc1_permutation(std::string key){
 	if (key.size() == 64){
 		std::string output;
 		output.resize(56);
@@ -130,7 +128,7 @@ std::string pc1_permutation(std::string key){
 }
 
 // Position swap according to PC2 table
-std::string pc2_permutation(std::string key){
+std::string Des::pc2_permutation(std::string key){
 	if (key.size() == 56){
 		std::string output;
 		output.resize(48);
@@ -147,7 +145,7 @@ std::string pc2_permutation(std::string key){
 }
 
 // S-boxes shrink input from 48 to 32
-std::string shrink_s_box(std::string input){
+std::string Des::shrink_s_box(std::string input){
 	if (input.size() == 48){
 		std::string output;
 		for (int i = 0; i < 8; i++){
@@ -176,7 +174,7 @@ std::string shrink_s_box(std::string input){
 }
 
 // Position swap according to PBOX table
-std::string straight_p_box(std::string input){
+std::string Des::straight_p_box(std::string input){
 	if (input.size() == 32){
 		std::string output;
 		output.resize(32);
@@ -193,7 +191,7 @@ std::string straight_p_box(std::string input){
 }
 
 // Shift key 1 or 2 left based on round #
-std::vector<std::string> shift_key(std::string input){
+std::vector<std::string> Des::shift_key(std::string input){
 	if (input.size() == 28){
 		std::vector<std::string> output;
 		output.push_back(input);
@@ -240,7 +238,7 @@ std::vector<std::string> shift_key(std::string input){
 }
 
 // 64-bit key -> 16 48-bit subkeys
-std::vector<std::string> create_subkeys(std::string key){
+std::vector<std::string> Des::create_subkeys(std::string key){
 	std::string key_permutation = pc1_permutation(key);
 
 	std::string left_perm_key = key_permutation.substr(0, 28);
@@ -259,7 +257,7 @@ std::vector<std::string> create_subkeys(std::string key){
 	return pc2_perms;
 }
 
-std::string mangler(std::string input, std::string key){
+std::string Des::mangler(std::string input, std::string key){
 
 	// Expand to 48 bits
 	std::string expanded = expansion_p_box(input);
@@ -276,46 +274,27 @@ std::string mangler(std::string input, std::string key){
 	return out;
 }
 
-int main(int argc, char** argv){
+void Des::run_des(bool encrypt, bool decrypt, std::string plaintext, std::string key,
+	bool ascii, bool binary, bool verb){
 
-	bool encrypt, decrypt, ascii, binary = false;
-	std::string plaintext, key;
-	int opt = 0;
-	while((opt = getopt(argc, argv, "edp:k:ab")) != -1){
-		switch(opt) {
-	        case 'e':
-	            encrypt = true;break;
-	        case 'd':
-	            decrypt = true;break;
-	        case 'p':
-	            plaintext = optarg;break;
-	        case 'k':
-	            key = optarg;break;
-	        case 'a':
-	            ascii = true;break;
-	        case 'b':
-	            binary = true;break;
-	        default:
-	            std::cerr << "Invalid Command Line Argument\n";
-        }
-	}
+	verbose = verb;
 
 	// Error conditions
 	if (encrypt && decrypt){
 		std::cout << "Please run with either encrypt(-e) or decypt(-d), not both" << std::endl;
-		return 0;
+		return;
 	}
 	else if (!encrypt && !decrypt){
 		std::cout << "Please run with either encrypt(-e) or decypt(-d)" << std::endl;
-		return 0;
+		return;
 	}
 	else if (ascii && (plaintext.size() != 8 || key.size() != 8)){
 		std::cout << "Please enter an ascii key and plaintext of length 8" << std::endl;
-		return 0;
+		return;
 	}
 	else if (!ascii && (plaintext.size() != 64 || key.size() != 64)){
 		std::cout << "Please enter a binary key and plaintext of length 64" << std::endl;
-		return 0;
+		return;
 	}
 
 	// Success conditions
