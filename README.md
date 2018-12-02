@@ -1,7 +1,7 @@
 # Des_Implementation
 Implementation of DES encryption
 
-Compile:
+### Compile:
 
 `g++ -std=c++11 main.cpp des.cpp -o des`
 
@@ -9,7 +9,7 @@ If gitbash:
 
 `g++ -std=c++11 main.cpp des.cpp -o des -static`
 
-Run:
+### Run:
 
 Flags:
 ```
@@ -21,6 +21,8 @@ Flags:
 -b: binary
 -v: verbose
 ```
+
+### Examples:
 
 Example: encrypt binary
 
@@ -34,7 +36,7 @@ Example: decrypt binary verbose
 
 `./des -d -m 1000010111101000000100110101010000001111000010101011010000000101 -k 0001001100110100010101110111100110011011101111001101111111110001 -b -v`
 
-Note:
+### Notes:
  * Message and key need to be the same type (binary/ASCII)
  * Most encryptions of ASCII characters will not properly render as the values do not fall within the ASCII possible values
 	* This means that the ASCII output might not be able to be decrypted if you copy and paste it
