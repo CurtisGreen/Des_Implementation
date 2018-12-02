@@ -12,19 +12,15 @@ If gitbash:
 Run:
 
 Flags:
+```
 -e: encrypt
-
 -d: decrypt
-
 -m: message (input)
-
 -k: key (input)
-
 -a: ascii
-
 -b: binary
-
 -v: verbose
+```
 
 Example: encrypt binary
 
