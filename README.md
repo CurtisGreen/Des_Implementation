@@ -36,8 +36,9 @@ Example: decrypt binary verbose
 
 `./des -d -m 1000010111101000000100110101010000001111000010101011010000000101 -k 0001001100110100010101110111100110011011101111001101111111110001 -b -v`
 
-### Notes:
+### Notes to grader:
+ * If -a/-b is not specified it defaults to binary(-b)
  * Message and key need to be the same type (binary/ASCII)
- * Most encryptions of ASCII characters will not properly render as the values do not fall within the ASCII possible values
+ * Most encryptions of ASCII characters will not properly render in the terminal as the values do not fall within ASCII
 	* This means that the ASCII output might not be able to be decrypted if you copy and paste it
 	* The binary output for the ASCII encryption can still be decrypted
