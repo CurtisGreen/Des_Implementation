@@ -54,6 +54,31 @@ std::string Des::bin_to_string(std::string input){
 	return output;
 }
 
+std::string Des::hex_to_bin(std::string input){
+	std::string output;
+	for (int i = 0; i < input.size(); i++){
+		std::stringstream ss;
+		ss << std::hex << input[i];
+		unsigned n;
+		ss >> n;
+		std::bitset<4> b(n);
+		output += b.to_string();
+	}
+	return output;
+}
+
+std::string Des::bin_to_hex(std::string input){
+	unsigned long long result = 0;
+	for (int i = 0; i < input.size(); i++){
+		result *= 2;
+		result += input[i]== '1' ? 1 : 0;
+	}
+
+	std::stringstream ss;
+	ss << "0x" << std::hex << std::setw(8) << std::setfill('0') << result;
+	return ss.str();
+}
+
 //////////////////////////////////////////////
 /// 			DES functions
 //////////////////////////////////////////////
@@ -274,8 +299,9 @@ std::string Des::mangler(std::string input, std::string key){
 	return out;
 }
 
+// Input: 64 bit (8 byte) plaintext and key (8 bits of key are redundant)
 void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
-	bool ascii, bool binary, bool verb){
+	bool ascii, bool binary, bool hex, bool verb){
 
 	verbose = verb;
 
@@ -288,11 +314,19 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 		std::cout << "Please run with either encrypt(-e) or decypt(-d)" << std::endl;
 		return;
 	}
+	else if (!ascii && !binary && !hex){
+		std::cout << "Please run with binary(-b), hex(-h), or ascii(-a)" << std::endl;
+		return;
+	}
 	else if (ascii && (text.size() != 8 || key.size() != 8)){
 		std::cout << "Please enter an ascii key and text of length 8" << std::endl;
 		return;
 	}
-	else if (!ascii && (text.size() != 64 || key.size() != 64)){
+	else if (hex && (text.size() != 16 || key.size() != 16)){
+		std::cout << "Please enter an hex key and text of length 16, do prepend '0x'" << std::endl;
+		return;
+	}
+	else if (binary && (text.size() != 64 || key.size() != 64)){
 		std::cout << "Please enter a binary key and text of length 64" << std::endl;
 		return;
 	}
@@ -301,12 +335,15 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 	else if (ascii){
 		text = string_to_bin(text);
 		key = string_to_bin(key);
+		std::cout << "Message in binary: " << text << std::endl;
+	}
+	else if (hex){
+		text = hex_to_bin(text);
+		key = hex_to_bin(key);
+		std::cout << "Message in binary: " << text << std::endl;
 	}
 
 	if (encrypt){
-		// Input: 64 bit (8 byte) plaintext and key (8 bits of key are redundant)
-		//std::string plaintext = "0000000100100011010001010110011110001001101010111100110111101111";
-		//std::string key = "0001001100110100010101110111100110011011101111001101111111110001";
 
 		// Create 16 subkeys of length 48bits
 		std::vector<std::string> subkeys = create_subkeys(key);
@@ -347,9 +384,12 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 
 		// Reverse the initial swap & perm
 		std::string final_output = reverse_ip(right_half + left_half);
-		std::cout << "\nDES encrypted output " << final_output << std::endl;
+		std::cout << "\nDES encrypted output: " << final_output << std::endl;
 		if (ascii){
-			std::cout << "ASCII encrypted output " << bin_to_string(final_output) << std::endl;
+			std::cout << "ASCII encrypted output: " << bin_to_string(final_output) << std::endl;
+		}
+		else if (hex){
+			std::cout << "Hex encrypted output: " << bin_to_hex(final_output) << std::endl;
 		}
 	}
 	else if(decrypt){
@@ -393,6 +433,9 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 		std::cout << "\nDES decrypted output " << final_output << std::endl;
 		if (ascii){
 			std::cout << "ASCII decrypted output " << bin_to_string(final_output) << std::endl;
+		}
+		else if (hex){
+			std::cout << "Hex encrypted output: " << bin_to_hex(final_output) << std::endl;
 		}
 	}
 }

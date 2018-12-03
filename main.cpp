@@ -6,10 +6,10 @@
 
 int main(int argc, char** argv){
 
-	bool encrypt, decrypt, ascii, binary, verbose = false;
+	bool encrypt = false, decrypt = false, ascii = false, binary = false, hex = false, verbose = false;
 	std::string plaintext, key;
 	int opt = 0;
-	while((opt = getopt(argc, argv, "edm:k:abv")) != -1){
+	while((opt = getopt(argc, argv, "edabhvm:k:")) != -1){
 		switch(opt) {
 	        case 'e':
 	            encrypt = true;break;
@@ -23,12 +23,14 @@ int main(int argc, char** argv){
 	            ascii = true;break;
 	        case 'b':
 	            binary = true;break;
+	        case 'h':
+	        	hex = true;break;
 	        case 'v':
 	        	verbose = true;break;
 	        default:
 	            std::cerr << "Invalid Command Line Argument\n";
         }
 	}
-	Des(encrypt, decrypt, plaintext, key, ascii, binary, verbose);
+	Des(encrypt, decrypt, plaintext, key, ascii, binary, hex, verbose);
 
 }

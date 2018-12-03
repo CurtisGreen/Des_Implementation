@@ -7,16 +7,17 @@
 #include <bitset>
 #include <sstream>
 #include <vector>
+#include <iomanip>
 
 #include "des_data.hpp"
 
 class Des {
 public:
-	void run_des(bool, bool, std::string, std::string, bool, bool, bool);
+	void run_des(bool, bool, std::string, std::string, bool, bool, bool, bool);
 
 	Des(bool encrypt, bool decrypt, std::string plaintext, std::string key,
-	  bool ascii, bool binary, bool verbose){
-		run_des(encrypt, decrypt, plaintext, key, ascii, binary, verbose);
+	  bool ascii, bool binary, bool hex, bool verbose){
+		run_des(encrypt, decrypt, plaintext, key, ascii, binary, hex, verbose);
 	}
 
 private:
@@ -27,6 +28,8 @@ private:
 	std::string xor_strings(std::string, std::string);
 	std::string string_to_bin(std::string);
 	std::string bin_to_string(std::string);
+	std::string hex_to_bin(std::string);
+	std::string bin_to_hex(std::string);
 
 	// DES functions
 	std::string expansion_p_box(std::string);
