@@ -353,7 +353,6 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 		}
 	}
 	else if(decrypt){
-		std::cout << "Working on it" << std::endl;
 
 		// Create 16 subkeys of length 48bits
 		std::vector<std::string> subkeys = create_subkeys(key);
