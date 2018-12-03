@@ -42,7 +42,7 @@ Example: encrypt ascii
 `./des -e -m abcdefgh -k ijklmnop -a`
 
 ### Notes to grader:
- * Message and key need to be the same type (binary/ASCII)
+ * Message and key need to be the same type (binary/hex/ASCII)
  * Most encryptions of ASCII characters will not properly render in the terminal as the values do not fall within ASCII
 	* This means that the ASCII output might not be able to be decrypted if you copy and paste it
 	* The binary output for the ASCII encryption can still be decrypted
