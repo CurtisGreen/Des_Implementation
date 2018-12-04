@@ -345,6 +345,9 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 
 	if (encrypt){
 
+		// Initiate timer
+		auto t1 = std::chrono::high_resolution_clock::now();
+
 		// Create 16 subkeys of length 48bits
 		std::vector<std::string> subkeys = create_subkeys(key);
 
@@ -384,6 +387,11 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 
 		// Reverse the initial swap & perm
 		std::string final_output = reverse_ip(right_half + left_half);
+
+		// Calculate runtime
+		auto t2 = std::chrono::high_resolution_clock::now();
+		std::cout << "Delta t2-t1: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() << " nanoseconds" << std::endl;
+
 		std::cout << "\nDES encrypted output: " << final_output << std::endl;
 		if (ascii){
 			std::cout << "ASCII encrypted output: " << bin_to_string(final_output) << std::endl;
@@ -393,6 +401,9 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 		}
 	}
 	else if(decrypt){
+
+		// Initiate timer
+		auto t1 = std::chrono::high_resolution_clock::now();
 
 		// Create 16 subkeys of length 48bits
 		std::vector<std::string> subkeys = create_subkeys(key);
@@ -430,6 +441,11 @@ void Des::run_des(bool encrypt, bool decrypt, std::string text, std::string key,
 
 		// Reverse the initial perm
 		std::string final_output = reverse_ip(left_half + right_half);
+
+		// Calculate runtime
+		auto t2 = std::chrono::high_resolution_clock::now();
+		std::cout << "Delta t2-t1: " << std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count() << " nanoseconds" << std::endl;
+
 		std::cout << "\nDES decrypted output " << final_output << std::endl;
 		if (ascii){
 			std::cout << "ASCII decrypted output " << bin_to_string(final_output) << std::endl;
